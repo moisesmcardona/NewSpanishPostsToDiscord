@@ -42,7 +42,7 @@ Partial Class Form1
         Me.Controls.Add(Me.Button1)
         Me.MaximizeBox = False
         Me.Name = "Form1"
-        Me.Text = "NuevosPostsBots"
+        Me.Text = "Posts to Discord"
         Me.ResumeLayout(False)
 
     End Sub

@@ -8,14 +8,15 @@ Public Class Form1
     Private DiscordChannelObject As DiscordChannel
     Private WithEvents DiscordClientLogger As DebugLogger
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim MySQLFile As StreamReader = New StreamReader("MySQLConfig.txt")
-        Dim currentline As String = ""
-        Dim MySQLServer As String = ""
-        Dim MySQLUser As String = ""
-        Dim MySQLPassword As String = ""
-        Dim MySQLDatabase As String = ""
-        While MySQLFile.EndOfStream = False
-            currentline = MySQLFile.ReadLine
+        Dim ConfigFile As StreamReader = New StreamReader("Config.txt")
+        Dim currentline As String = String.Empty
+        Dim MySQLServer As String = String.Empty
+        Dim MySQLUser As String = String.Empty
+        Dim MySQLPassword As String = String.Empty
+        Dim MySQLDatabase As String = String.Empty
+        Dim token As String = String.Empty
+        While ConfigFile.EndOfStream = False
+            currentline = ConfigFile.ReadLine
             If currentline.Contains("server") Then
                 Dim GetServer As String() = currentline.Split("=")
                 MySQLServer = GetServer(1)
