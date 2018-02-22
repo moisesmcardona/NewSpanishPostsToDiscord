@@ -3,10 +3,12 @@ Imports DSharpPlus
 Imports MySql.Data.MySqlClient
 
 Public Class Form1
-    Private MySQLString = ""
+    Private MySQLString = String.Empty
     Private WithEvents DiscordClient As DiscordClient
     Private DiscordChannelObject As DiscordChannel
     Private WithEvents DiscordClientLogger As DebugLogger
+    Private ChannelId As String = String.Empty
+    Private MySQLTable As String = String.Empty
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim ConfigFile As StreamReader = New StreamReader("Config.txt")
         Dim currentline As String = String.Empty
@@ -29,12 +31,21 @@ Public Class Form1
             ElseIf currentline.Contains("database") Then
                 Dim GetDatabase As String() = currentline.Split("=")
                 MySQLDatabase = GetDatabase(1)
+            ElseIf currentline.Contains("table") Then
+                Dim GetTable As String() = currentline.Split("=")
+                MySQLTable = GetTable(1)
+            ElseIf currentline.Contains("token") Then
+                Dim GetToken As String() = currentline.Split("=")
+                token = GetToken(1)
+            ElseIf currentline.Contains("channel") Then
+                Dim GetChannel As String() = currentline.Split("=")
+                ChannelId = GetChannel(1)
             End If
         End While
         MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";"
         Dim dcfg As New DiscordConfig
         With dcfg
-            .Token = My.Computer.FileSystem.ReadAllText("token.txt")
+            .Token = token
             .TokenType = TokenType.Bot
             .LogLevel = LogLevel.Debug
             .AutoReconnect = True
@@ -49,7 +60,7 @@ Public Class Form1
         Button1.Text = "Running"
     End Sub
     Public Sub PostToDiscord()
-        Dim SQLQuery3 As String = "SELECT  * FROM newspanishposts WHERE posted=0"
+        Dim SQLQuery3 As String = "SELECT  * FROM " & MySQLTable & " WHERE posted=0"
         While True
             Try
                 Dim Connection3 As MySqlConnection = New MySqlConnection(MySQLString)
@@ -75,7 +86,7 @@ Public Class Form1
         End While
     End Sub
     Private Async Sub SendPost(username As String, link As String)
-        Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(368568796216295434)
+        Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(Convert.ToUInt64(ChannelId))
         Await DiscordClient.SendMessageAsync(Channel, "Nuevo post de @" & username & ". Link del post: " & link)
     End Sub
 End Class
