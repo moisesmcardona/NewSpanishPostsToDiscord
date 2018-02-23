@@ -1,16 +1,17 @@
 ﻿Imports System.IO
+Imports System.Threading
 Imports DSharpPlus
 Imports MySql.Data.MySqlClient
 
 Public Class Form1
     Private MySQLString = String.Empty
     Private WithEvents DiscordClient As DiscordClient
-    Private DiscordChannelObject As DiscordChannel
-    Private WithEvents DiscordClientLogger As DebugLogger
     Private ChannelId As String = String.Empty
-    Private MySQLTable As String = String.Empty
+    Private ServerName As String = String.Empty
+    Private Language As String = String.Empty
+
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim ConfigFile As StreamReader = New StreamReader("Config.txt")
+        Dim ConfigFile = New StreamReader("Config.txt")
         Dim currentline As String = String.Empty
         Dim MySQLServer As String = String.Empty
         Dim MySQLUser As String = String.Empty
@@ -19,7 +20,7 @@ Public Class Form1
         Dim token As String = String.Empty
         While ConfigFile.EndOfStream = False
             currentline = ConfigFile.ReadLine
-            If currentline.Contains("server") Then
+            If currentline.Contains("mysqlserver=") Then
                 Dim GetServer As String() = currentline.Split("=")
                 MySQLServer = GetServer(1)
             ElseIf currentline.Contains("username") Then
@@ -31,15 +32,19 @@ Public Class Form1
             ElseIf currentline.Contains("database") Then
                 Dim GetDatabase As String() = currentline.Split("=")
                 MySQLDatabase = GetDatabase(1)
-            ElseIf currentline.Contains("table") Then
-                Dim GetTable As String() = currentline.Split("=")
-                MySQLTable = GetTable(1)
+            ElseIf currentline.Contains("servername") Then
+                Dim GetServerName As String() = currentline.Split("=")
+                ServerName = GetServerName(1)
+                Me.Text = "Posts to " + ServerName + " Discord Server"
             ElseIf currentline.Contains("token") Then
                 Dim GetToken As String() = currentline.Split("=")
                 token = GetToken(1)
-            ElseIf currentline.Contains("channel") Then
+            ElseIf currentline.Contains("channelid") Then
                 Dim GetChannel As String() = currentline.Split("=")
                 ChannelId = GetChannel(1)
+            ElseIf currentline.Contains("language") Then
+                Dim GetLanguage As String() = currentline.Split("=")
+                Language = GetLanguage(1)
             End If
         End While
         MySQLString = "server=" + MySQLServer + ";user=" + MySQLUser + ";database=" + MySQLDatabase + ";port=3306;password=" + MySQLPassword + ";"
@@ -51,42 +56,50 @@ Public Class Form1
             .AutoReconnect = True
         End With
         Me.DiscordClient = New DiscordClient(dcfg)
-        Me.DiscordClientLogger = Me.DiscordClient.DebugLogger
         Await Me.DiscordClient.ConnectAsync()
     End Sub
+
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        Dim Thread1 As New System.Threading.Thread(Sub() PostToDiscord())
+        Dim Thread1 As New Thread(Sub() PostToDiscord())
         Thread1.Start()
         Button1.Text = "Running"
     End Sub
+
     Public Sub PostToDiscord()
-        Dim SQLQuery3 As String = "SELECT  * FROM " & MySQLTable & " WHERE posted=0"
+        Dim query As String = "SELECT * FROM newposts WHERE posted=0 AND channel='" & ServerName & "'"
         While True
             Try
-                Dim Connection3 As MySqlConnection = New MySqlConnection(MySQLString)
-                Dim Command3 As New MySqlCommand(SQLQuery3, Connection3)
-                Connection3.Open()
-                Dim reader3 As MySqlDataReader = Command3.ExecuteReader
-                If reader3.HasRows Then
-                    While reader3.Read
-                        SendPost(reader3("username"), reader3("link"))
-                        Dim SQLQuery4 As String = "DELETE FROM newspanishposts WHERE link='" & reader3("link") & "'"
-                        Dim Connection4 As MySqlConnection = New MySqlConnection(MySQLString)
-                        Dim Command4 As New MySqlCommand(SQLQuery4, Connection4)
-                        Connection4.Open()
-                        Command4.ExecuteNonQuery()
-                        Connection4.Close()
-                        Threading.Thread.Sleep(2000)
+                Dim Connection = New MySqlConnection(MySQLString)
+                Dim Command As New MySqlCommand(query, Connection)
+                Connection.Open()
+                Dim reader As MySqlDataReader = Command.ExecuteReader
+                If reader.HasRows Then
+                    While reader.Read
+                        SendPost(reader("username"), reader("link"))
+                        Dim SQLQuery2 = "UPDATE newposts SET posted=1 WHERE id = " & reader("id") & ";INSERT INTO newpostsprocessed SELECT * FROM newposts WHERE posted=1;DELETE FROM newposts WHERE posted=1;"
+                        Dim Connection2 = New MySqlConnection(MySQLString)
+                        Dim Command2 As New MySqlCommand(SQLQuery2, Connection2)
+                        Connection2.Open()
+                        Command2.ExecuteNonQuery()
+                        Connection2.Close()
+                        Thread.Sleep(2000)
                     End While
                 End If
-                Connection3.Close()
-                Threading.Thread.Sleep(2000)
+                Connection.Close()
+                Thread.Sleep(2000)
             Catch ex As Exception
+                Continue While
             End Try
         End While
     End Sub
+
     Private Async Sub SendPost(username As String, link As String)
-        Dim Channel As DiscordChannel = Await DiscordClient.GetChannelAsync(Convert.ToUInt64(ChannelId))
-        Await DiscordClient.SendMessageAsync(Channel, "Nuevo post de @" & username & ". Link del post: " & link)
+        Dim Message As String = String.Empty
+        If Language = "en" Then
+            Message = "New post from @" & username & ". Post Link: " & link
+        Else
+            Message = "Nuevo post de @" & username & ". Link del post: " & link
+        End If
+        Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(Convert.ToUInt64(ChannelId)), Message)
     End Sub
 End Class
