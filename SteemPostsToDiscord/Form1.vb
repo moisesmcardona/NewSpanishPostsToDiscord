@@ -65,7 +65,7 @@ Public Class Form1
         Button1.Text = "Running"
     End Sub
 
-    Public Sub PostToDiscord()
+    Public Async Sub PostToDiscord()
         Dim query As String = "SELECT * FROM newposts WHERE posted=0 AND channel='" & ServerName & "'"
         While True
             Try
@@ -75,7 +75,7 @@ Public Class Form1
                 Dim reader As MySqlDataReader = Command.ExecuteReader
                 If reader.HasRows Then
                     While reader.Read
-                        SendPost(reader("username"), reader("link"))
+                        Await SendPost(reader("username"), reader("link"))
                         Dim SQLQuery2 = "UPDATE newposts SET posted=1 WHERE id = " & reader("id") & ";INSERT INTO newpostsprocessed SELECT * FROM newposts WHERE posted=1;DELETE FROM newposts WHERE posted=1;"
                         Dim Connection2 = New MySqlConnection(MySQLString)
                         Dim Command2 As New MySqlCommand(SQLQuery2, Connection2)
@@ -93,7 +93,7 @@ Public Class Form1
         End While
     End Sub
 
-    Private Async Sub SendPost(username As String, link As String)
+    Private Async Function SendPost(username As String, link As String) As Task
         Dim Message As String = String.Empty
         If Language = "en" Then
             Message = "New post from @" & username & ". Post Link: " & link
@@ -101,5 +101,5 @@ Public Class Form1
             Message = "Nuevo post de @" & username & ". Link del post: " & link
         End If
         Await DiscordClient.SendMessageAsync(Await DiscordClient.GetChannelAsync(Convert.ToUInt64(ChannelId)), Message)
-    End Sub
+    End Function
 End Class
