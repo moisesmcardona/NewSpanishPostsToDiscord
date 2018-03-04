@@ -76,7 +76,7 @@ Public Class Form1
                 If reader.HasRows Then
                     While reader.Read
                         Await SendPost(reader("username"), reader("link"))
-                        Dim SQLQuery2 = "UPDATE newposts SET posted=1 WHERE id = " & reader("id") & ";INSERT INTO newpostsprocessed SELECT * FROM newposts WHERE posted=1;DELETE FROM newposts WHERE posted=1;"
+                        Dim SQLQuery2 = "UPDATE newposts SET posted=1 WHERE id = " & reader("id") & ";INSERT INTO newpostsprocessed (username, link, posted, channel) SELECT username, link, posted, channel FROM newposts WHERE posted=1;DELETE FROM newposts WHERE posted=1;"
                         Dim Connection2 = New MySqlConnection(MySQLString)
                         Dim Command2 As New MySqlCommand(SQLQuery2, Connection2)
                         Connection2.Open()
